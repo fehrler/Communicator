@@ -79,6 +79,10 @@ void MainWindow::on_IV_button_clicked()
 {
     on_Set_Compl_clicked();
 
+    int tempstart = -1;
+    if(messpcb.is_open())
+        tempstart = messpcb.MeasureTemperature(ui->SensorChannel->value());
+
     double imax;
     imax = ui->IV_imax->value()*pow(10, -9+3*ui->IV_imax_unit->currentIndex());
     std::vector<std::pair<double, double> > curve = SMU.IVMeasurement(ui->IV_start->value(),ui->IV_end->value(),
@@ -101,6 +105,10 @@ void MainWindow::on_IV_button_clicked()
         }
     }while(1);
 
+    int tempend = -1;
+    if(messpcb.is_open())
+        tempend = messpcb.MeasureTemperature(ui->SensorChannel->value());
+
     f.open(filename.toStdString().c_str(), std::ios::out);
 
     if(!f.is_open())
@@ -109,7 +117,11 @@ void MainWindow::on_IV_button_clicked()
         return;
     }
     else
+    {
         f << "# IV-Curve\n# Voltage (in V); Current (in A)" << std::endl;
+        if(tempstart != -1 && tempend != -1)
+            f << "# Temperature (in ADC-Counts): " << tempstart << " - " << tempend << std::endl;
+    }
 
     for(auto it = curve.begin(); it != curve.end();++it) //std::vector<std::pair<double, double> >::iterator)
     {
@@ -166,7 +178,6 @@ void MainWindow::on_Measure_clicked()
               << " \xB0" << "C" << std::endl;
 
     ui->progressBar->setValue(temperature*10);
-    ui->temperature->setText(QString::number(temperature,'g',3));
     ui->lcdtemp->display(temperature);
 }
 
@@ -182,4 +193,67 @@ void MainWindow::on_checkBox_clicked()
         }
 
     }
+}
+
+void MainWindow::on_Cal_addpoint_clicked()
+{
+    std::fstream f;
+    f.open(ui->Cal_filename->text().toStdString().c_str(),std::ios::in);
+    if(!f.is_open())
+    {
+        f.open(ui->Cal_filename->text().toStdString().c_str(),std::ios::out | std::ios::app);
+        f << "# Calibration of Sensors: " << ui->Cal_sensors->text().toStdString()
+          << std::endl
+          << "# Set Temperature; Sensors; Voltages;" << std::endl;
+    }
+    else
+    {
+        f.close();
+        f.open(ui->Cal_filename->text().toStdString().c_str(),std::ios::out | std::ios::app);
+    }
+
+    //extract the sensors to read from the channel line edit:
+    std::vector<int> sensors;
+    std::string senstext = ui->Cal_sensors->text().toStdString();
+    int newnumber = 0;
+    for(unsigned int i = 0; i < senstext.length(); ++i)
+    {
+        char c = senstext.c_str()[i];
+        if(c >= 48 && c <= 57)
+            newnumber = newnumber * 10 + (c-48);
+        else if(c == ',')
+        {
+            sensors.push_back(newnumber);
+            newnumber = 0;
+        }
+    }
+    if(senstext.length() > 0 && senstext.c_str()[senstext.length()-1] != ',')
+        sensors.push_back(newnumber);
+
+    if(sensors.size() > 0)
+        std::cout << "Sensors to Measure: " << sensors.size() << std::endl;
+    else
+    {
+        std::cout << "No sensors selected. Done before starting." << std::endl;
+        f.close();
+        return;
+    }
+
+    //write out temperature reference:
+    f << ui->Cal_temp_is->value() << "\t\""
+      << ui->Cal_sensors->text().toStdString() << "\"\t";
+
+    //measure the sensors:
+    std::cout << "Measuring Temperature " << ui->Cal_temp_is->value()
+              << " \xB0" << "C:" << std::endl;
+    for(auto it = sensors.begin(); it != sensors.end(); ++it)
+    {
+        int result = messpcb.MeasureTemperature(*it);
+
+        std::cout << "  Sensor " << *it << ": " << result << std::endl;
+        f << result << "\t";
+    }
+    f << std::endl;
+
+    f.close();
 }
