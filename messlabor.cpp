@@ -44,6 +44,11 @@ bool Messlabor::open(QSerialPortInfo port)
     return connection.open(QSerialPort::ReadWrite);
 }
 
+bool Messlabor::is_open()
+{
+    return connection.isOpen();
+}
+
 void Messlabor::close()
 {
     connection.close();

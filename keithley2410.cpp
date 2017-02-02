@@ -197,6 +197,9 @@ std::vector<std::pair<double, double> > Keithley2410::IVMeasurement(double vstar
 
     //Write(std::string(":SENSE:CURR:RANGE ") + QString::number(current*3).toStdString());
 
+    double lastrange = 2e-6;
+    double nextrange;
+
     for (double voltage = vstart; (voltage < vend)^(vstep < 0) || voltage == vend; voltage += vstep)
     {
         std::cout << "Measuring Voltage " << voltage << "V:" << std::endl;
@@ -219,7 +222,14 @@ std::vector<std::pair<double, double> > Keithley2410::IVMeasurement(double vstar
         //change the range for the next measurement:
         //if(voltage == vstart)
         //    Write(":SENSE:CURR:RANGE:AUTO OFF");
-        Write(std::string(":SENSE:CURR:RANGE ") + QString::number(current*3).toStdString());   //(current*1.5).toStdString());
+
+
+        nextrange = fabs(current)* 20;
+        if(nextrange > lastrange)
+        {
+            lastrange = nextrange;
+            Write(std::string(":SENSE:CURR:RANGE ") + QString::number(nextrange).toStdString());   //(current*1.5).toStdString());
+        }
 
         //Sleep(10);
     }

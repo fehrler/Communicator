@@ -42,6 +42,8 @@ private slots:
 
     void on_checkBox_clicked();
 
+    void on_Cal_addpoint_clicked();
+
 private:
     Ui::MainWindow *ui;
     Keithley2410 SMU;

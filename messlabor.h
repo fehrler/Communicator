@@ -31,6 +31,7 @@ public:
     void SetCOMPort(std::string port);
     bool open(std::string port = "");
     bool open(QSerialPortInfo port);
+    bool is_open();
     void close();
 
     int MeasureTemperature(char channel);
